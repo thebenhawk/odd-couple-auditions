@@ -105,7 +105,16 @@
   .confirm h2{font-family:'Anton',sans-serif; color:var(--red-deep); text-transform:uppercase;}
   details{margin-top:26px;}
   summary{cursor:pointer; font-weight:700; color:var(--gold-deep); font-size:13px; text-transform:uppercase; letter-spacing:.03em;}
-  .roster div{padding:6px 0; border-bottom:1px solid #eee; font-size:13px;}
+  .roster-day{
+    font-family:'Barlow Condensed',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    font-size:12.5px; color:var(--red-deep); margin:12px 0 4px; border-bottom:1.5px solid var(--red-deep); padding-bottom:3px;
+  }
+  .roster-day:first-child{margin-top:0;}
+  .roster-slot{
+    display:flex; justify-content:space-between; font-size:13px; font-weight:700; padding:6px 0 2px;
+  }
+  .roster-full{color:var(--red-deep);}
+  .roster-entry{font-size:12.5px; color:#444; padding:2px 0 2px 10px;}
 
   .manage-found{background:var(--cream); border:1.5px solid var(--ink); border-radius:8px; padding:12px; margin-top:12px; font-size:13px; line-height:1.5;}
   .manage-found b{color:var(--red-deep);}
@@ -148,19 +157,6 @@
 <details id="roster-details" open>
   <summary>Slot availability &amp; current sign-ups</summary>
   <div class="roster" id="roster">Loading…</div>
-</details>
-
-<details id="dashboard-details">
-  <summary>Production Team Dashboard</summary>
-  <div class="panel" id="dashboard-panel">
-    <div id="dashboard-gate">
-      <label>Passcode</label>
-      <input id="dash-pass" type="password" placeholder="Enter passcode" />
-      <button id="dash-unlock" style="margin-top:10px;">Unlock</button>
-      <div class="hint">Ask your director or producer for the passcode.</div>
-    </div>
-    <div id="dashboard-content" style="display:none;"></div>
-  </div>
 </details>
 
 <script>
@@ -320,9 +316,6 @@ function render(){
       <div class="chip-group" id="crew"></div>
 
       <div class="section-title">Prep &amp; Experience</div>
-      <label>Character you're preparing your monologue as</label>
-      <input id="character" placeholder="e.g. Oscar Madison" />
-
       <label>Resume &amp; headshot</label>
       <div class="hint">PDF, JPEG, or PNG — up to 4MB each. Optional, but helpful.</div>
       <div class="row2" style="margin-top:8px;">
@@ -365,7 +358,7 @@ function render(){
         <div class="loc-note">Not the same as the rehearsal location (Performing Arts Center) — see Schedule above.</div>
       </div>
       <div class="prep-box">
-        <b>What to bring:</b> One 2–4 minute monologue in the tone of the show. Character sides are posted online one week prior to auditions — pick one character to prepare.
+        <b>What to bring:</b> One 2–4 minute monologue in the tone of the show. Sides are posted online one week prior to auditions — pick a scene from one of the roles you're interested in.
       </div>
       <label>Pick an audition time</label>
       <div class="day-grid">
@@ -481,7 +474,6 @@ function render(){
     document.getElementById('age').value = r.age || '';
     document.getElementById('height').value = r.height || '';
     document.getElementById('workschool').value = r.workschool || '';
-    document.getElementById('character').value = r.character || '';
     document.getElementById('bio').value = r.bio || '';
     document.getElementById('conflicts').value = r.conflicts || '';
     document.getElementById('notes').value = r.notes || '';
@@ -502,13 +494,37 @@ async function renderRoster(){
   }
   try{
     const result = await apiPost('roster', {});
-    if(!result.success || !result.rows || result.rows.length === 0){
-      el.innerHTML = '<div>No sign-ups yet.</div>';
-      return;
-    }
-    el.innerHTML = result.rows.map(d =>
-      `<div><b>${d.name}</b> — ${d.slotLabel} — ${(d.roles||[]).join(', ') || 'no role selected'}</div>`
-    ).join('');
+    const rows = (result.success && result.rows) ? result.rows : [];
+
+    const bySlot = {};
+    rows.forEach(r => {
+      if(!bySlot[r.slot]) bySlot[r.slot] = [];
+      bySlot[r.slot].push(r);
+    });
+
+    const dayGroups = [
+      {label: 'Thursday, Sept 10', slots: THU_SLOTS},
+      {label: 'Friday, Sept 11', slots: FRI_SLOTS}
+    ];
+
+    let html = '';
+    dayGroups.forEach(day => {
+      html += `<div class="roster-day">${day.label}</div>`;
+      day.slots.forEach(s => {
+        const entries = bySlot[s.id] || [];
+        const count = entries.length;
+        const full = count >= SLOT_CAPACITY;
+        html += `<div class="roster-slot">
+          <span>${s.label}</span>
+          <span class="${full ? 'roster-full' : ''}">${count}/${SLOT_CAPACITY} booked${full ? ' — full' : ''}</span>
+        </div>`;
+        entries.forEach(d => {
+          html += `<div class="roster-entry">${d.name} — ${(d.roles||[]).join(', ') || 'no role selected'}</div>`;
+        });
+      });
+    });
+
+    el.innerHTML = html || '<div>No sign-ups yet.</div>';
   }catch(e){
     el.innerHTML = '<div>No sign-ups yet.</div>';
   }
@@ -523,7 +539,6 @@ async function submitForm(){
   const age = document.getElementById('age').value.trim();
   const height = document.getElementById('height').value.trim();
   const workschool = document.getElementById('workschool').value.trim();
-  const character = document.getElementById('character').value.trim();
   const bio = document.getElementById('bio').value.trim();
   const conflicts = document.getElementById('conflicts').value.trim();
   const notes = document.getElementById('notes').value.trim();
@@ -531,8 +546,8 @@ async function submitForm(){
   const submitBtn = document.getElementById('submit');
   const progressWrap = document.getElementById('progress-wrap');
 
-  if(!name || !email || !character || !selectedSlot || selectedRoles.size === 0){
-    msg.textContent = 'Please fill in your name, email, character, at least one role, and pick a slot.';
+  if(!name || !email || !selectedSlot || selectedRoles.size === 0){
+    msg.textContent = 'Please fill in your name, email, at least one role, and pick a slot.';
     msg.className = 'msg err';
     return;
   }
@@ -564,7 +579,7 @@ async function submitForm(){
     pronouns: Array.from(selectedPronouns),
     roles: Array.from(selectedRoles),
     anyPart, crew: Array.from(selectedCrew),
-    character, bio, conflicts, notes,
+    bio, conflicts, notes,
     slot: selectedSlot, slotLabel
   };
   if(resumeFile) payload.resumeFile = resumeFile;
@@ -610,7 +625,7 @@ async function submitForm(){
     document.getElementById('app').innerHTML = `
       <div class="panel confirm">
         <h2>${heading}</h2>
-        <p>${name}, you're set for <b>${slotLabel}</b> — preparing <b>${character}</b>.</p>
+        <p>${name}, you're set for <b>${slotLabel}</b>.</p>
         <p class="hint">Bring your monologue and arrive a few minutes early. See you at Riverfront Community Center!</p>
         ${emailNote}
         <div style="background:var(--ink); color:var(--gold); border-radius:8px; padding:12px; margin-top:14px;">
@@ -659,7 +674,7 @@ function renderManageResult(found){
   el.innerHTML = `
     <div class="manage-found">
       <div><b>${d.name}</b> — ${d.slotLabel}</div>
-      <div>Preparing: ${d.character || '—'}</div>
+      <div>Roles: ${(d.roles || []).join(', ') || '—'}</div>
       <div class="manage-actions">
         <button id="manage-cancel" class="btn-danger">Cancel booking</button>
         <button id="manage-reschedule" class="btn-secondary">Pick a different time</button>
@@ -709,97 +724,8 @@ async function runManageSearch(){
 document.getElementById('manage-find').addEventListener('click', runManageSearch);
 
 // ---------- Production Dashboard ----------
-// The passcode is checked on the Apps Script server now — it's never sent
-// to the browser, so this is real security, not just a client-side gate.
-let cachedPasscode = null;
-
-const DASH_COLS = ['name','email','phone','pronouns','age','height','workschool','roles','anyPart','crew','character','resumeUrl','headshotUrl','bio','conflicts','notes','slotLabel','code','timestamp'];
-const DASH_LABELS = {
-  name:'Name', email:'Email', phone:'Phone', pronouns:'Pronouns', age:'Age', height:'Height',
-  workschool:'Work / School', roles:'Roles Interested', anyPart:'Any Part?', crew:'Crew Willing',
-  character:'Character Prepared', resumeUrl:'Resume', headshotUrl:'Headshot',
-  bio:'Bio / Experience', conflicts:'Conflicts', notes:'Notes to Director',
-  slotLabel:'Audition Slot', code:'Confirmation Code', timestamp:'Submitted'
-};
-const DASH_LINK_COLS = ['resumeUrl', 'headshotUrl'];
-
-function cellValue(v){
-  if(Array.isArray(v)) v = v.join(', ');
-  return (v===undefined || v===null) ? '' : String(v);
-}
-
-function renderDashboardTable(records){
-  const container = document.getElementById('dashboard-content');
-  if(!records || records.length === 0){
-    container.innerHTML = '<div class="hint">No sign-ups yet.</div>';
-    return;
-  }
-  records.sort((a,b) => (a.slot||'').localeCompare(b.slot||'') || (a.timestamp||'').localeCompare(b.timestamp||''));
-  let html = `<button id="dash-refresh" style="width:auto;margin-right:8px;">Refresh</button>
-              <button id="dash-export" style="width:auto;">Export CSV</button>
-              <div style="overflow-x:auto;margin-top:12px;">
-              <table style="border-collapse:collapse;width:100%;font-size:11px;">`;
-  html += '<tr>' + DASH_COLS.map(c => `<th style="border:1px solid #ccc;padding:5px 7px;background:var(--ink);color:var(--gold);text-align:left;white-space:nowrap;">${DASH_LABELS[c]}</th>`).join('') + '</tr>';
-  records.forEach(r => {
-    html += '<tr>' + DASH_COLS.map(c => {
-      const raw = cellValue(r[c]);
-      if(DASH_LINK_COLS.indexOf(c) !== -1 && raw){
-        return `<td style="border:1px solid #ccc;padding:5px 7px;max-width:220px;vertical-align:top;"><a href="${raw.replace(/"/g,'')}" target="_blank" rel="noopener" style="color:var(--red-deep);">View</a></td>`;
-      }
-      const v = raw.replace(/</g,'&lt;');
-      return `<td style="border:1px solid #ccc;padding:5px 7px;max-width:220px;vertical-align:top;">${v}</td>`;
-    }).join('') + '</tr>';
-  });
-  html += '</table></div>';
-  container.innerHTML = html;
-  document.getElementById('dash-export').addEventListener('click', () => exportCsv(records));
-  document.getElementById('dash-refresh').addEventListener('click', unlockDashboard);
-}
-
-function exportCsv(records){
-  const esc = v => {
-    v = cellValue(v);
-    if(v.includes(',') || v.includes('"') || v.includes('\n')) v = '"' + v.replace(/"/g,'""') + '"';
-    return v;
-  };
-  let csv = DASH_COLS.map(c => esc(DASH_LABELS[c])).join(',') + '\n';
-  records.forEach(r => {
-    csv += DASH_COLS.map(c => esc(r[c])).join(',') + '\n';
-  });
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'odd_couple_auditions.csv';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-async function unlockDashboard(){
-  const container = document.getElementById('dashboard-content');
-  container.innerHTML = '<div class="hint">Loading…</div>';
-  try{
-    const result = await apiPost('dashboard', {passcode: cachedPasscode});
-    if(!result.success){
-      document.getElementById('dashboard-gate').style.display = '';
-      document.getElementById('dashboard-content').style.display = 'none';
-      alert('Incorrect passcode.');
-      return;
-    }
-    renderDashboardTable(result.records);
-  }catch(e){
-    container.innerHTML = '<div class="hint" style="color:var(--red-deep);">Something went wrong — please try again.</div>';
-  }
-}
-
-document.getElementById('dash-unlock').addEventListener('click', async () => {
-  cachedPasscode = document.getElementById('dash-pass').value;
-  document.getElementById('dashboard-gate').style.display = 'none';
-  document.getElementById('dashboard-content').style.display = 'block';
-  await unlockDashboard();
-});
+// Hidden from the page for now — the director wants to rework this later.
+// The Apps Script backend still supports the 'dashboard' action if needed.
 
 (async function init(){
   await loadTaken();
