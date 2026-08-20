@@ -177,6 +177,27 @@ async function apiPost(action, payload){
   return res.json();
 }
 
+// Same as apiPost, but reports real upload progress via XHR (fetch can't).
+// Used for create/reschedule since those can carry large file uploads.
+function apiPostWithProgress(action, payload, onProgress){
+  const body = Object.assign({action}, payload);
+  if(SHEET_NAME) body.sheetName = SHEET_NAME;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', APPS_SCRIPT_URL);
+    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8'); // avoids a CORS preflight
+    xhr.upload.onprogress = (e) => {
+      if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      try{ resolve(JSON.parse(xhr.responseText)); }
+      catch(err){ reject(err); }
+    };
+    xhr.onerror = () => reject(new Error('network error'));
+    xhr.send(JSON.stringify(body));
+  });
+}
+
 async function apiGet(params){
   const url = new URL(APPS_SCRIPT_URL);
   Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
@@ -220,6 +241,7 @@ let selectedCrew = new Set();
 let anyPart = null;
 let scheduleAck = false;
 let rescheduleFrom = null; // holds {record} of a booking being changed
+let isSubmitting = false;
 
 async function loadTaken(){
   slotCounts = {};
@@ -375,6 +397,12 @@ function render(){
       <textarea id="notes" placeholder="Optional"></textarea>
 
       <button id="submit">Reserve my slot</button>
+      <div id="progress-wrap" style="display:none; margin-top:10px;">
+        <div style="background:#e5ddc8; border-radius:6px; overflow:hidden; height:8px;">
+          <div id="progress-bar" style="background:var(--red-deep); height:100%; width:0%; transition:width .15s ease;"></div>
+        </div>
+        <div id="progress-label" style="text-align:center; font-size:12px; color:#777; margin-top:4px;">Uploading… 0%</div>
+      </div>
       <div id="msg" class="msg"></div>
     </div>
   `;
@@ -499,6 +527,8 @@ async function renderRoster(){
 }
 
 async function submitForm(){
+  if(isSubmitting) return; // guards against double-clicks/double-taps
+
   const name = document.getElementById('name').value.trim();
   const email = document.getElementById('email').value.trim();
   const phone = document.getElementById('phone').value.trim();
@@ -510,6 +540,10 @@ async function submitForm(){
   const conflicts = document.getElementById('conflicts').value.trim();
   const notes = document.getElementById('notes').value.trim();
   const msg = document.getElementById('msg');
+  const submitBtn = document.getElementById('submit');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressBar = document.getElementById('progress-bar');
+  const progressLabel = document.getElementById('progress-label');
 
   if(!name || !email || !character || !selectedSlot || selectedRoles.size === 0){
     msg.textContent = 'Please fill in your name, email, character, at least one role, and pick a slot.';
@@ -554,15 +588,37 @@ async function submitForm(){
   const action = isReschedule ? 'reschedule' : 'create';
   const actionPayload = isReschedule ? {code: rescheduleFrom.code, data: payload} : {data: payload};
 
+  isSubmitting = true;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting…';
+  msg.textContent = '';
+  const hasFiles = !!(resumeFile || headshotFile);
+  if(hasFiles){
+    progressWrap.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressLabel.textContent = 'Uploading… 0%';
+  }
+
   try{
-    const result = await apiPost(action, actionPayload);
+    const result = await apiPostWithProgress(action, actionPayload, (pct) => {
+      if(hasFiles){
+        progressBar.style.width = pct + '%';
+        progressLabel.textContent = pct < 100 ? `Uploading… ${pct}%` : 'Finishing up…';
+      }
+    });
     if(!result.success){
       if(result.error === 'slot_full'){
         msg.textContent = 'That slot just filled up — please pick another.';
+      }else if(result.error === 'duplicate'){
+        msg.textContent = 'Looks like you\'ve already signed up with this name and email. Check your email for your confirmation code, or use the "Already Signed Up?" box above to manage your booking.';
       }else{
         msg.textContent = 'Something went wrong saving your sign-up — please try again.';
       }
       msg.className = 'msg err';
+      isSubmitting = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Reserve my slot';
+      progressWrap.style.display = 'none';
       await loadTaken();
       render();
       return;
@@ -594,11 +650,16 @@ async function submitForm(){
       render();
     });
     rescheduleFrom = null;
+    isSubmitting = false;
     await loadTaken();
     renderRoster();
   }catch(e){
     msg.textContent = 'Something went wrong saving your sign-up — please try again.';
     msg.className = 'msg err';
+    isSubmitting = false;
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Reserve my slot';
+    progressWrap.style.display = 'none';
   }
 }
 
