@@ -237,11 +237,31 @@ function toggleSet(set, val, cb){
   cb();
 }
 
+const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4MB
+
+function readFileAsPayload(inputEl){
+  return new Promise((resolve, reject) => {
+    const file = inputEl.files && inputEl.files[0];
+    if(!file){ resolve(null); return; }
+    if(file.size > MAX_FILE_BYTES){
+      reject(new Error(`${file.name} is too large — please use a file under 4MB.`));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = String(reader.result).split(',')[1] || '';
+      resolve({ data: base64, name: file.name, mimeType: file.type });
+    };
+    reader.onerror = () => reject(new Error(`Couldn't read ${file.name}.`));
+    reader.readAsDataURL(file);
+  });
+}
+
 function render(){
   const app = document.getElementById('app');
   const r = rescheduleFrom ? rescheduleFrom.record : null;
   app.innerHTML = `
-    ${r ? `<div class="reschedule-banner">Choosing a new time for ${r.name} — your old slot (${r.slotLabel}) has been released</div>` : ''}
+    ${r ? `<div class="reschedule-banner">Choosing a new time for ${r.name} — your current slot (${r.slotLabel}) stays reserved until you confirm</div>` : ''}
     <div class="panel">
 
       <div class="section-title">About You</div>
@@ -294,7 +314,20 @@ function render(){
       <input id="character" placeholder="e.g. Oscar Madison" />
 
       <label>Resume &amp; headshot</label>
-      <div class="hint">This form can't accept file attachments — please email your resume and headshot to Amanda Jacobs (theatergeek18@rocketmail.com). If you don't have either, list your notable productions and training below instead.</div>
+      <div class="hint">PDF, JPEG, or PNG — up to 4MB each. Optional, but helpful.</div>
+      <div class="row2" style="margin-top:8px;">
+        <div>
+          <label style="margin-top:0;">Resume</label>
+          <input id="resumeFile" type="file" accept=".pdf,.jpg,.jpeg,.png" />
+          <div class="hint" id="resume-status"></div>
+        </div>
+        <div>
+          <label style="margin-top:0;">Headshot</label>
+          <input id="headshotFile" type="file" accept=".jpg,.jpeg,.png" />
+          <div class="hint" id="headshot-status"></div>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:8px;">Don't have a resume or headshot ready? No problem — just list your notable productions and training below instead.</div>
       <textarea id="bio" style="margin-top:8px;" placeholder="Notable productions (role, theatre group) and any notable training — classes, workshops, etc."></textarea>
 
       <div class="section-title">Schedule</div>
@@ -412,6 +445,16 @@ function render(){
     ackEl.classList.toggle('on', scheduleAck);
   });
 
+  // File pickers
+  document.getElementById('resumeFile').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    document.getElementById('resume-status').textContent = f ? `Selected: ${f.name}` : '';
+  });
+  document.getElementById('headshotFile').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    document.getElementById('headshot-status').textContent = f ? `Selected: ${f.name}` : '';
+  });
+
   document.getElementById('submit').addEventListener('click', submitForm);
 
   // Prefill when rescheduling
@@ -484,6 +527,16 @@ async function submitForm(){
     return;
   }
 
+  let resumeFile, headshotFile;
+  try{
+    resumeFile = await readFileAsPayload(document.getElementById('resumeFile'));
+    headshotFile = await readFileAsPayload(document.getElementById('headshotFile'));
+  }catch(fileErr){
+    msg.textContent = fileErr.message;
+    msg.className = 'msg err';
+    return;
+  }
+
   const dayName = selectedSlot.startsWith('t1') ? 'Thu 9/10' : 'Fri 9/11';
   const slotLabel = dayName + ' · ' + AUDITION_SLOTS.find(s => s.id === selectedSlot).label;
   const payload = {
@@ -494,9 +547,15 @@ async function submitForm(){
     character, bio, conflicts, notes,
     slot: selectedSlot, slotLabel
   };
+  if(resumeFile) payload.resumeFile = resumeFile;
+  if(headshotFile) payload.headshotFile = headshotFile;
+
+  const isReschedule = !!rescheduleFrom;
+  const action = isReschedule ? 'reschedule' : 'create';
+  const actionPayload = isReschedule ? {code: rescheduleFrom.code, data: payload} : {data: payload};
 
   try{
-    const result = await apiPost('create', {data: payload});
+    const result = await apiPost(action, actionPayload);
     if(!result.success){
       if(result.error === 'slot_full'){
         msg.textContent = 'That slot just filled up — please pick another.';
@@ -512,9 +571,13 @@ async function submitForm(){
     const emailNote = result.emailSent
       ? `<p class="hint">A confirmation email is on its way to ${email}.</p>`
       : `<p class="hint" style="color:var(--red-deep);">Heads up: the confirmation email wasn't sent — save your code below just in case.</p>`;
+    const heading = isReschedule ? "You're all set — time updated!" : "You're booked!";
+    const codeNote = isReschedule
+      ? 'Your confirmation code stays the same as before — use it any time to manage this booking.'
+      : 'Save this code — use it in the "Already Signed Up?" box above to cancel or change your time later.';
     document.getElementById('app').innerHTML = `
       <div class="panel confirm">
-        <h2>You're booked!</h2>
+        <h2>${heading}</h2>
         <p>${name}, you're set for <b>${slotLabel}</b> — preparing <b>${character}</b>.</p>
         <p class="hint">Bring your monologue and arrive a few minutes early. See you at Riverfront Community Center!</p>
         ${emailNote}
@@ -522,7 +585,7 @@ async function submitForm(){
           <div style="font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--cream); opacity:.8;">Your confirmation code</div>
           <div style="font-family:'Anton',sans-serif; font-size:26px; letter-spacing:.08em;">${code}</div>
         </div>
-        <p class="hint">Save this code — use it in the "Already Signed Up?" box above to cancel or change your time later. This confirmation only shows once.</p>
+        <p class="hint">${codeNote} This confirmation only shows once.</p>
         <button id="again" style="margin-top:14px;">Sign up someone else</button>
       </div>`;
     document.getElementById('again').addEventListener('click', () => {
@@ -580,23 +643,20 @@ function renderManageResult(found){
     }
   });
   document.getElementById('manage-reschedule').addEventListener('click', async () => {
-    try{
-      await apiPost('cancel', {code: found.code});
-    }catch(e){}
     rescheduleFrom = found;
     selectedSlot = null; scheduleAck = false;
     selectedPronouns = new Set(d.pronouns || []);
     selectedRoles = new Set(d.roles || []);
     selectedCrew = new Set(d.crew || []);
     anyPart = d.anyPart || null;
-    el.innerHTML = `<div class="hint" style="margin-top:10px;">Your old slot has been released — pick a new time below.</div>`;
+    el.innerHTML = `<div class="hint" style="margin-top:10px;">Pick a new time below — your current slot (${d.slotLabel}) stays reserved until you confirm the new one.</div>`;
     await loadTaken();
     render();
     document.getElementById('app').scrollIntoView({behavior:'smooth'});
   });
 }
 
-document.getElementById('manage-find').addEventListener('click', async () => {
+async function runManageSearch(){
   const codeInput = document.getElementById('manage-code');
   const code = codeInput.value.trim();
   const el = document.getElementById('manage-result');
@@ -607,20 +667,24 @@ document.getElementById('manage-find').addEventListener('click', async () => {
   el.innerHTML = `<div class="hint" style="margin-top:10px;">Searching…</div>`;
   const found = await findBookingByCode(code);
   renderManageResult(found);
-});
+}
+
+document.getElementById('manage-find').addEventListener('click', runManageSearch);
 
 // ---------- Production Dashboard ----------
 // The passcode is checked on the Apps Script server now — it's never sent
 // to the browser, so this is real security, not just a client-side gate.
 let cachedPasscode = null;
 
-const DASH_COLS = ['name','email','phone','pronouns','age','height','workschool','roles','anyPart','crew','character','bio','conflicts','notes','slotLabel','code','timestamp'];
+const DASH_COLS = ['name','email','phone','pronouns','age','height','workschool','roles','anyPart','crew','character','resumeUrl','headshotUrl','bio','conflicts','notes','slotLabel','code','timestamp'];
 const DASH_LABELS = {
   name:'Name', email:'Email', phone:'Phone', pronouns:'Pronouns', age:'Age', height:'Height',
   workschool:'Work / School', roles:'Roles Interested', anyPart:'Any Part?', crew:'Crew Willing',
-  character:'Character Prepared', bio:'Bio / Experience', conflicts:'Conflicts', notes:'Notes to Director',
+  character:'Character Prepared', resumeUrl:'Resume', headshotUrl:'Headshot',
+  bio:'Bio / Experience', conflicts:'Conflicts', notes:'Notes to Director',
   slotLabel:'Audition Slot', code:'Confirmation Code', timestamp:'Submitted'
 };
+const DASH_LINK_COLS = ['resumeUrl', 'headshotUrl'];
 
 function cellValue(v){
   if(Array.isArray(v)) v = v.join(', ');
@@ -641,7 +705,11 @@ function renderDashboardTable(records){
   html += '<tr>' + DASH_COLS.map(c => `<th style="border:1px solid #ccc;padding:5px 7px;background:var(--ink);color:var(--gold);text-align:left;white-space:nowrap;">${DASH_LABELS[c]}</th>`).join('') + '</tr>';
   records.forEach(r => {
     html += '<tr>' + DASH_COLS.map(c => {
-      const v = cellValue(r[c]).replace(/</g,'&lt;');
+      const raw = cellValue(r[c]);
+      if(DASH_LINK_COLS.indexOf(c) !== -1 && raw){
+        return `<td style="border:1px solid #ccc;padding:5px 7px;max-width:220px;vertical-align:top;"><a href="${raw.replace(/"/g,'')}" target="_blank" rel="noopener" style="color:var(--red-deep);">View</a></td>`;
+      }
+      const v = raw.replace(/</g,'&lt;');
       return `<td style="border:1px solid #ccc;padding:5px 7px;max-width:220px;vertical-align:top;">${v}</td>`;
     }).join('') + '</tr>';
   });
@@ -699,6 +767,13 @@ document.getElementById('dash-unlock').addEventListener('click', async () => {
 (async function init(){
   await loadTaken();
   render();
+
+  const urlCode = new URLSearchParams(window.location.search).get('code');
+  if(urlCode){
+    document.getElementById('manage-code').value = urlCode.toUpperCase();
+    document.getElementById('manage-panel').scrollIntoView({behavior:'smooth'});
+    await runManageSearch();
+  }
 })();
 </script>
 
