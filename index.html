@@ -117,6 +117,15 @@
     background:var(--gold); color:var(--ink); text-align:center; font-weight:700; font-size:13px;
     padding:8px; border-radius:8px; margin-bottom:14px; text-transform:uppercase; letter-spacing:.03em;
   }
+
+  .progress-indeterminate{
+    position:absolute; top:0; left:0; height:100%; width:40%; border-radius:6px;
+    background:var(--red-deep); animation:progress-slide 1.1s ease-in-out infinite;
+  }
+  @keyframes progress-slide{
+    0%{ left:-40%; }
+    100%{ left:100%; }
+  }
 </style>
 </head>
 <body>
@@ -175,27 +184,6 @@ async function apiPost(action, payload){
     body: JSON.stringify(body)
   });
   return res.json();
-}
-
-// Same as apiPost, but reports real upload progress via XHR (fetch can't).
-// Used for create/reschedule since those can carry large file uploads.
-function apiPostWithProgress(action, payload, onProgress){
-  const body = Object.assign({action}, payload);
-  if(SHEET_NAME) body.sheetName = SHEET_NAME;
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', APPS_SCRIPT_URL);
-    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8'); // avoids a CORS preflight
-    xhr.upload.onprogress = (e) => {
-      if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.onload = () => {
-      try{ resolve(JSON.parse(xhr.responseText)); }
-      catch(err){ reject(err); }
-    };
-    xhr.onerror = () => reject(new Error('network error'));
-    xhr.send(JSON.stringify(body));
-  });
 }
 
 async function apiGet(params){
@@ -398,10 +386,10 @@ function render(){
 
       <button id="submit">Reserve my slot</button>
       <div id="progress-wrap" style="display:none; margin-top:10px;">
-        <div style="background:#e5ddc8; border-radius:6px; overflow:hidden; height:8px;">
-          <div id="progress-bar" style="background:var(--red-deep); height:100%; width:0%; transition:width .15s ease;"></div>
+        <div style="background:#e5ddc8; border-radius:6px; overflow:hidden; height:8px; position:relative;">
+          <div id="progress-bar" class="progress-indeterminate"></div>
         </div>
-        <div id="progress-label" style="text-align:center; font-size:12px; color:#777; margin-top:4px;">Uploading… 0%</div>
+        <div id="progress-label" style="text-align:center; font-size:12px; color:#777; margin-top:4px;">Submitting — this can take a moment if you attached files…</div>
       </div>
       <div id="msg" class="msg"></div>
     </div>
@@ -542,8 +530,6 @@ async function submitForm(){
   const msg = document.getElementById('msg');
   const submitBtn = document.getElementById('submit');
   const progressWrap = document.getElementById('progress-wrap');
-  const progressBar = document.getElementById('progress-bar');
-  const progressLabel = document.getElementById('progress-label');
 
   if(!name || !email || !character || !selectedSlot || selectedRoles.size === 0){
     msg.textContent = 'Please fill in your name, email, character, at least one role, and pick a slot.';
@@ -592,20 +578,10 @@ async function submitForm(){
   submitBtn.disabled = true;
   submitBtn.textContent = 'Submitting…';
   msg.textContent = '';
-  const hasFiles = !!(resumeFile || headshotFile);
-  if(hasFiles){
-    progressWrap.style.display = 'block';
-    progressBar.style.width = '0%';
-    progressLabel.textContent = 'Uploading… 0%';
-  }
+  progressWrap.style.display = 'block';
 
   try{
-    const result = await apiPostWithProgress(action, actionPayload, (pct) => {
-      if(hasFiles){
-        progressBar.style.width = pct + '%';
-        progressLabel.textContent = pct < 100 ? `Uploading… ${pct}%` : 'Finishing up…';
-      }
-    });
+    const result = await apiPost(action, actionPayload);
     if(!result.success){
       if(result.error === 'slot_full'){
         msg.textContent = 'That slot just filled up — please pick another.';
