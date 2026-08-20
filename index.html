@@ -127,6 +127,11 @@
     padding:8px; border-radius:8px; margin-bottom:14px; text-transform:uppercase; letter-spacing:.03em;
   }
 
+  .waitlist-banner{
+    background:var(--red-deep); color:#fff; font-size:12.5px; line-height:1.4;
+    padding:10px 12px; border-radius:8px; margin:6px 0 4px; font-weight:600;
+  }
+
   .progress-indeterminate{
     position:absolute; top:0; left:0; height:100%; width:40%; border-radius:6px;
     background:var(--red-deep); animation:progress-slide 1.1s ease-in-out infinite;
@@ -263,9 +268,14 @@ function readFileAsPayload(inputEl){
   });
 }
 
+function isAllSlotsFull(){
+  return AUDITION_SLOTS.every(s => (slotCounts[s.id] || 0) >= SLOT_CAPACITY);
+}
+
 function render(){
   const app = document.getElementById('app');
   const r = rescheduleFrom ? rescheduleFrom.record : null;
+  const allFull = !r && isAllSlotsFull();
   app.innerHTML = `
     ${r ? `<div class="reschedule-banner">Choosing a new time for ${r.name} — your current slot (${r.slotLabel}) stays reserved until you confirm</div>` : ''}
     <div class="panel">
@@ -361,6 +371,7 @@ function render(){
         <b>What to bring:</b> One 2–4 minute monologue in the tone of the show. Sides are posted online one week prior to auditions — pick a scene from one of the roles you're interested in.
       </div>
       <label>Pick an audition time</label>
+      ${allFull ? `<div class="waitlist-banner">All slots are currently full — you can still sign up below and we'll add you to the waitlist. We'll automatically book you into the next opening and email you the details.</div>` : ''}
       <div class="day-grid">
         <div class="day-col">
           <div class="day-head">Thursday, Sept 10</div>
@@ -371,13 +382,13 @@ function render(){
           <div id="slots-fri"></div>
         </div>
       </div>
-      <div class="hint">5 people per slot. Can't make either day work? Note it in the conflicts box above.</div>
+      <div class="hint">${allFull ? 'Every slot is full right now — no need to pick one, just submit below to join the waitlist.' : '5 people per slot. Can\'t make either day work? Note it in the conflicts box above.'}</div>
 
       <div class="section-title">Anything Else</div>
       <label>Notes to the director</label>
       <textarea id="notes" placeholder="Optional"></textarea>
 
-      <button id="submit">Reserve my slot</button>
+      <button id="submit">${allFull ? 'Join the Waitlist' : 'Reserve my slot'}</button>
       <div id="progress-wrap" style="display:none; margin-top:10px;">
         <div style="background:#e5ddc8; border-radius:6px; overflow:hidden; height:8px; position:relative;">
           <div id="progress-bar" class="progress-indeterminate"></div>
@@ -546,8 +557,14 @@ async function submitForm(){
   const submitBtn = document.getElementById('submit');
   const progressWrap = document.getElementById('progress-wrap');
 
-  if(!name || !email || !selectedSlot || selectedRoles.size === 0){
-    msg.textContent = 'Please fill in your name, email, at least one role, and pick a slot.';
+  const isReschedule = !!rescheduleFrom;
+  const waitlistMode = !isReschedule && isAllSlotsFull();
+  const originalBtnLabel = waitlistMode ? 'Join the Waitlist' : 'Reserve my slot';
+
+  if(!name || !email || selectedRoles.size === 0 || (!waitlistMode && !selectedSlot)){
+    msg.textContent = waitlistMode
+      ? 'Please fill in your name, email, and at least one role.'
+      : 'Please fill in your name, email, at least one role, and pick a slot.';
     msg.className = 'msg err';
     return;
   }
@@ -572,21 +589,26 @@ async function submitForm(){
     return;
   }
 
-  const dayName = selectedSlot.startsWith('t1') ? 'Thu 9/10' : 'Fri 9/11';
-  const slotLabel = dayName + ' · ' + AUDITION_SLOTS.find(s => s.id === selectedSlot).label;
+  let slotLabel = null;
+  if(!waitlistMode){
+    const dayName = selectedSlot.startsWith('t1') ? 'Thu 9/10' : 'Fri 9/11';
+    slotLabel = dayName + ' · ' + AUDITION_SLOTS.find(s => s.id === selectedSlot).label;
+  }
   const payload = {
     name, email, phone, age, height, workschool,
     pronouns: Array.from(selectedPronouns),
     roles: Array.from(selectedRoles),
     anyPart, crew: Array.from(selectedCrew),
-    bio, conflicts, notes,
-    slot: selectedSlot, slotLabel
+    bio, conflicts, notes
   };
+  if(!waitlistMode){
+    payload.slot = selectedSlot;
+    payload.slotLabel = slotLabel;
+  }
   if(resumeFile) payload.resumeFile = resumeFile;
   if(headshotFile) payload.headshotFile = headshotFile;
 
-  const isReschedule = !!rescheduleFrom;
-  const action = isReschedule ? 'reschedule' : 'create';
+  const action = waitlistMode ? 'waitlist' : (isReschedule ? 'reschedule' : 'create');
   const actionPayload = isReschedule ? {code: rescheduleFrom.code, data: payload} : {data: payload};
 
   isSubmitting = true;
@@ -608,25 +630,39 @@ async function submitForm(){
       msg.className = 'msg err';
       isSubmitting = false;
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Reserve my slot';
+      submitBtn.textContent = originalBtnLabel;
       progressWrap.style.display = 'none';
       await loadTaken();
       render();
       return;
     }
     const code = result.code;
+    const wasWaitlisted = !!result.waitlisted;
+    const finalSlotLabel = result.slotLabel || slotLabel;
     const emailNote = result.emailSent
       ? `<p class="hint">A confirmation email is on its way to ${email}.</p>`
       : `<p class="hint" style="color:var(--red-deep);">Heads up: the confirmation email wasn't sent — save your code below just in case.</p>`;
-    const heading = isReschedule ? "You're all set — time updated!" : "You're booked!";
-    const codeNote = isReschedule
-      ? 'Your confirmation code stays the same as before — use it any time to manage this booking.'
-      : 'Save this code — use it in the "Already Signed Up?" box above to cancel or change your time later.';
+
+    let heading, bodyText, codeNote;
+    if(wasWaitlisted){
+      heading = "You're on the waitlist!";
+      bodyText = `${name}, every slot is full right now. You're next in line — the moment someone cancels, we'll automatically book you in and email you the details.`;
+      codeNote = 'Save this code — use it in the "Already Signed Up?" box above if you need to cancel your spot on the waitlist.';
+    }else if(isReschedule){
+      heading = "You're all set — time updated!";
+      bodyText = `${name}, you're set for <b>${finalSlotLabel}</b>.`;
+      codeNote = 'Your confirmation code stays the same as before — use it any time to manage this booking.';
+    }else{
+      heading = "You're booked!";
+      bodyText = `${name}, you're set for <b>${finalSlotLabel}</b>.`;
+      codeNote = 'Save this code — use it in the "Already Signed Up?" box above to cancel or change your time later.';
+    }
+
     document.getElementById('app').innerHTML = `
       <div class="panel confirm">
         <h2>${heading}</h2>
-        <p>${name}, you're set for <b>${slotLabel}</b>.</p>
-        <p class="hint">Bring your monologue and arrive a few minutes early. See you at Riverfront Community Center!</p>
+        <p>${bodyText}</p>
+        ${wasWaitlisted ? '' : '<p class="hint">Bring your monologue and arrive a few minutes early. See you at Riverfront Community Center!</p>'}
         ${emailNote}
         <div style="background:var(--ink); color:var(--gold); border-radius:8px; padding:12px; margin-top:14px;">
           <div style="font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--cream); opacity:.8;">Your confirmation code</div>
@@ -649,7 +685,7 @@ async function submitForm(){
     msg.className = 'msg err';
     isSubmitting = false;
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Reserve my slot';
+    submitBtn.textContent = originalBtnLabel;
     progressWrap.style.display = 'none';
   }
 }
@@ -657,7 +693,7 @@ async function submitForm(){
 async function findBookingByCode(code){
   try{
     const result = await apiPost('find', {code: code.toUpperCase()});
-    if(result.success) return {code: code.toUpperCase(), record: result.record};
+    if(result.success) return {code: code.toUpperCase(), record: result.record, waitlisted: !!result.waitlisted};
     return null;
   }catch(e){
     return null;
@@ -671,21 +707,28 @@ function renderManageResult(found){
     return;
   }
   const d = found.record;
+  const statusLine = found.waitlisted ? 'Status: Waitlisted — no time assigned yet' : d.slotLabel;
+  const rescheduleBtn = found.waitlisted ? '' : `<button id="manage-reschedule" class="btn-secondary">Pick a different time</button>`;
   el.innerHTML = `
     <div class="manage-found">
-      <div><b>${d.name}</b> — ${d.slotLabel}</div>
+      <div><b>${d.name}</b> — ${statusLine}</div>
       <div>Roles: ${(d.roles || []).join(', ') || '—'}</div>
       <div class="manage-actions">
-        <button id="manage-cancel" class="btn-danger">Cancel booking</button>
-        <button id="manage-reschedule" class="btn-secondary">Pick a different time</button>
+        <button id="manage-cancel" class="btn-danger">${found.waitlisted ? 'Leave waitlist' : 'Cancel booking'}</button>
+        ${rescheduleBtn}
       </div>
     </div>`;
   document.getElementById('manage-cancel').addEventListener('click', async () => {
-    if(!confirm(`Cancel ${d.name}'s booking for ${d.slotLabel}?`)) return;
+    const confirmMsg = found.waitlisted
+      ? `Remove ${d.name} from the waitlist?`
+      : `Cancel ${d.name}'s booking for ${d.slotLabel}?`;
+    if(!confirm(confirmMsg)) return;
     try{
       const result = await apiPost('cancel', {code: found.code});
       if(!result.success) throw new Error('cancel failed');
-      el.innerHTML = `<div class="hint" style="margin-top:10px;">Booking cancelled. That slot is now open for someone else.</div>`;
+      el.innerHTML = found.waitlisted
+        ? `<div class="hint" style="margin-top:10px;">Removed from the waitlist.</div>`
+        : `<div class="hint" style="margin-top:10px;">Booking cancelled. That slot is now open — if anyone's on the waitlist, they've just been automatically booked into it.</div>`;
       await loadTaken();
       renderRoster();
       // refresh currently-shown slot buttons if the main form isn't mid-reschedule
@@ -694,18 +737,20 @@ function renderManageResult(found){
       el.innerHTML = `<div class="hint" style="color:var(--red-deep); margin-top:10px;">Couldn't cancel — please try again.</div>`;
     }
   });
-  document.getElementById('manage-reschedule').addEventListener('click', async () => {
-    rescheduleFrom = found;
-    selectedSlot = null; scheduleAck = false;
-    selectedPronouns = new Set(d.pronouns || []);
-    selectedRoles = new Set(d.roles || []);
-    selectedCrew = new Set(d.crew || []);
-    anyPart = d.anyPart || null;
-    el.innerHTML = `<div class="hint" style="margin-top:10px;">Pick a new time below — your current slot (${d.slotLabel}) stays reserved until you confirm the new one.</div>`;
-    await loadTaken();
-    render();
-    document.getElementById('app').scrollIntoView({behavior:'smooth'});
-  });
+  if(!found.waitlisted){
+    document.getElementById('manage-reschedule').addEventListener('click', async () => {
+      rescheduleFrom = found;
+      selectedSlot = null; scheduleAck = false;
+      selectedPronouns = new Set(d.pronouns || []);
+      selectedRoles = new Set(d.roles || []);
+      selectedCrew = new Set(d.crew || []);
+      anyPart = d.anyPart || null;
+      el.innerHTML = `<div class="hint" style="margin-top:10px;">Pick a new time below — your current slot (${d.slotLabel}) stays reserved until you confirm the new one.</div>`;
+      await loadTaken();
+      render();
+      document.getElementById('app').scrollIntoView({behavior:'smooth'});
+    });
+  }
 }
 
 async function runManageSearch(){
