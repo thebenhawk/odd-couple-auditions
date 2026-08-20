@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Odd Couple — Audition Sign-Up</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap');
+  :root{
+    --ink:#171310; --cream:#F3EAD3; --gold:#D9A441; --gold-deep:#B9812A;
+    --red:#A9282A; --red-deep:#7E1C1E; --paper:#FBF6E8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:'Barlow', sans-serif; background:var(--paper); color:var(--ink);
+    margin:0; padding:24px 16px 60px; max-width:680px; margin:0 auto;
+  }
+  h1{
+    font-family:'Anton', sans-serif; text-transform:uppercase; font-size:34px;
+    color:var(--red-deep); text-align:center; margin:8px 0 2px; line-height:1;
+  }
+  .sub{text-align:center; font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:.04em; color:var(--gold-deep); margin-bottom:20px;}
+  .panel{background:#fff; border:2px solid var(--ink); border-radius:12px; padding:18px 18px 22px; margin-bottom:16px;}
+  .section-title{
+    font-family:'Barlow Condensed',sans-serif; font-weight:700; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--red-deep); font-size:15px; border-bottom:2px solid var(--red-deep);
+    padding-bottom:5px; margin:22px 0 10px;
+  }
+  .section-title:first-child{margin-top:0;}
+  label{display:block; font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.03em; margin:14px 0 6px; color:var(--red-deep);}
+  .section-title + label{margin-top:0;}
+  input[type=text], input[type=email], input[type=tel], input[type=number], select, textarea{
+    width:100%; padding:10px 12px; border:1.5px solid #999; border-radius:8px;
+    font-family:'Barlow',sans-serif; font-size:15px; background:var(--paper); color:var(--ink);
+  }
+  textarea{min-height:70px; resize:vertical;}
+  .hint{font-size:12.5px; color:#555; margin-top:4px; font-weight:400;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+  .chip-group{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;}
+  .chip{
+    border:1.5px solid #999; border-radius:20px; padding:7px 14px; font-size:13.5px; font-weight:600;
+    cursor:pointer; user-select:none; background:var(--paper);
+  }
+  .chip.on{background:var(--ink); color:var(--gold); border-color:var(--ink);}
+
+  .role-check{
+    border:1.5px solid #999; border-radius:10px; padding:10px 12px; margin-bottom:8px; cursor:pointer; user-select:none;
+  }
+  .role-check.on{border-color:var(--red-deep); background:#fdf3ea;}
+  .role-check .rname{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:14.5px;}
+  .role-check .rmeta{font-size:11px; font-weight:700; color:var(--red-deep); letter-spacing:.02em;}
+  .role-check .rdesc{font-size:12.5px; color:#333; margin-top:2px;}
+
+  .yn{display:flex; gap:10px; margin-top:4px;}
+  .yn .chip{flex:1; text-align:center;}
+
+  .schedule-box{background:var(--cream); border:1.5px solid var(--ink); border-radius:10px; padding:12px 14px; font-size:13px; line-height:1.5;}
+  .schedule-box b{color:var(--red-deep);}
+  .schedule-box .line{margin-bottom:4px;}
+
+  .location-banner{
+    background:var(--red-deep); color:#fff; border-radius:10px; padding:14px 16px; text-align:center; margin-top:4px;
+  }
+  .location-banner .loc-label{font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:.1em; text-transform:uppercase; font-size:12px; color:var(--gold); opacity:.95;}
+  .location-banner .loc-name{font-family:'Anton',sans-serif; text-transform:uppercase; font-size:24px; line-height:1.15; margin:2px 0;}
+  .location-banner .loc-note{font-size:12px; color:var(--cream); opacity:.9;}
+
+  .prep-box{
+    background:var(--cream); border:1.5px solid var(--ink); border-radius:10px; padding:12px 14px; font-size:13px; line-height:1.5; margin-top:12px;
+  }
+  .prep-box b{color:var(--red-deep);}
+
+  .day-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px;}
+  .day-head{
+    font-family:'Barlow Condensed',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+    font-size:13px; color:var(--red-deep); text-align:center; margin-bottom:6px;
+  }
+  .slot{
+    border:1.5px solid #999; border-radius:8px; padding:8px 10px; text-align:center;
+    cursor:pointer; font-size:13px; font-weight:600; background:var(--paper); user-select:none; margin-bottom:8px;
+  }
+  .slot .count{display:block; font-size:11px; font-weight:600; color:#777; margin-top:2px;}
+  .slot.selected .count{color:var(--gold);}
+  .slot.taken{opacity:.45; cursor:not-allowed; text-decoration:line-through;}
+  .slot.selected{background:var(--ink); color:var(--gold); border-color:var(--ink);}
+
+  .ack{display:flex; gap:10px; align-items:flex-start; margin-top:16px; cursor:pointer; user-select:none; font-size:13px; line-height:1.4;}
+  .ack-box{
+    flex:0 0 20px; width:20px; height:20px; border:2px solid var(--ink); border-radius:5px; margin-top:1px; background:var(--paper);
+  }
+  .ack.on .ack-box{background:var(--red-deep); border-color:var(--red-deep); position:relative;}
+  .ack.on .ack-box::after{
+    content:"✓"; color:#fff; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;
+  }
+
+  button{
+    width:100%; margin-top:20px; padding:14px; background:var(--red-deep); color:#fff; border:none;
+    border-radius:10px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:17px;
+    letter-spacing:.04em; text-transform:uppercase; cursor:pointer;
+  }
+  .msg{text-align:center; font-weight:600; margin-top:10px; font-size:14px;}
+  .msg.err{color:var(--red-deep);}
+  .confirm{text-align:center; padding:30px 10px;}
+  .confirm h2{font-family:'Anton',sans-serif; color:var(--red-deep); text-transform:uppercase;}
+  details{margin-top:26px;}
+  summary{cursor:pointer; font-weight:700; color:var(--gold-deep); font-size:13px; text-transform:uppercase; letter-spacing:.03em;}
+  .roster div{padding:6px 0; border-bottom:1px solid #eee; font-size:13px;}
+
+  .manage-found{background:var(--cream); border:1.5px solid var(--ink); border-radius:8px; padding:12px; margin-top:12px; font-size:13px; line-height:1.5;}
+  .manage-found b{color:var(--red-deep);}
+  .manage-actions{display:flex; gap:8px; margin-top:10px;}
+  .manage-actions button{margin-top:0; flex:1; font-size:13px; padding:10px;}
+  .btn-secondary{background:var(--gold-deep) !important;}
+  .btn-danger{background:var(--red-deep) !important;}
+  .reschedule-banner{
+    background:var(--gold); color:var(--ink); text-align:center; font-weight:700; font-size:13px;
+    padding:8px; border-radius:8px; margin-bottom:14px; text-transform:uppercase; letter-spacing:.03em;
+  }
+</style>
+</head>
+<body>
+
+<h1>The Odd Couple</h1>
+<div class="sub">Audition Sign-Up · River City Community Players</div>
+
+<div class="panel" id="manage-panel">
+  <div class="section-title" style="margin-top:0;">Already Signed Up?</div>
+  <div class="hint" style="margin-bottom:8px;">Enter your confirmation code to cancel or change your audition time.</div>
+  <div style="display:flex; gap:8px;">
+    <input id="manage-code" type="text" placeholder="Confirmation code" style="text-transform:uppercase;" />
+    <button id="manage-find" style="width:auto; margin-top:0; padding:10px 18px; white-space:nowrap;">Find</button>
+  </div>
+  <div id="manage-result"></div>
+</div>
+
+<div id="app"></div>
+
+<details id="roster-details" open>
+  <summary>Slot availability &amp; current sign-ups</summary>
+  <div class="roster" id="roster">Loading…</div>
+</details>
+
+<details id="dashboard-details">
+  <summary>Production Team Dashboard</summary>
+  <div class="panel" id="dashboard-panel">
+    <div id="dashboard-gate">
+      <label>Passcode</label>
+      <input id="dash-pass" type="password" placeholder="Enter passcode" />
+      <button id="dash-unlock" style="margin-top:10px;">Unlock</button>
+      <div class="hint">Ask your director or producer for the passcode.</div>
+    </div>
+    <div id="dashboard-content" style="display:none;"></div>
+  </div>
+</details>
+
+<script>
+// ---------- Backend config ----------
+// Paste your deployed Apps Script Web App URL here (ends in /exec).
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzZVdZQPhRbWfHIvv2smp7L26PGD9HIPev8Tq9zYxqAovPWLI56Cg9Qj01mTiMU39-2/exec';
+// Leave blank on the real form. The DEMO copy sets this to write to a
+// separate sheet tab so test submissions never mix with real ones.
+const SHEET_NAME = '';
+
+function scriptConfigured(){
+  return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.startsWith('YOUR_');
+}
+
+async function apiPost(action, payload){
+  const body = Object.assign({action}, payload);
+  if(SHEET_NAME) body.sheetName = SHEET_NAME;
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'}, // avoids a CORS preflight
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+async function apiGet(params){
+  const url = new URL(APPS_SCRIPT_URL);
+  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  if(SHEET_NAME) url.searchParams.set('sheetName', SHEET_NAME);
+  const res = await fetch(url.toString());
+  return res.json();
+}
+
+const SLOT_CAPACITY = 5;
+
+const THU_SLOTS = [
+  {id:'t1-630', label:'6:30 PM'}, {id:'t1-700', label:'7:00 PM'},
+  {id:'t1-730', label:'7:30 PM'}, {id:'t1-800', label:'8:00 PM'},
+];
+const FRI_SLOTS = [
+  {id:'f1-630', label:'6:30 PM'}, {id:'f1-700', label:'7:00 PM'},
+  {id:'f1-730', label:'7:30 PM'}, {id:'f1-800', label:'8:00 PM'},
+];
+const AUDITION_SLOTS = [...THU_SLOTS, ...FRI_SLOTS];
+
+const PRONOUNS = ['She/Her','He/Him','They/Them','Other'];
+
+const ROLES = [
+  {name:'Oscar Madison', meta:'Presenting Male · 35–55', desc:'Big-hearted, big-mouthed divorced sportswriter hosting poker night. Loud, generous, allergic to responsibility.'},
+  {name:'Felix Ungar', meta:'Presenting Male · 35–55', desc:'Freshly separated, fastidiously neat, wound tight as a drum. Anxious, sensitive, exhaustingly precise.'},
+  {name:'Speed', meta:'Presenting Male · 30–55', desc:'Poker-night regular with a razor tongue and zero patience.'},
+  {name:'Murray', meta:'Presenting Male · 30–55', desc:'The friendly neighborhood cop at the card table. Good-natured peacemaker.'},
+  {name:'Roy', meta:'Presenting Male · 30–55', desc:'Practical, penny-counting accountant type. Voice of exasperated reason.'},
+  {name:'Vinnie', meta:'Presenting Male · 30–55', desc:'Mild-mannered, easily flustered member of the poker crew.'},
+  {name:'Gwendolyn Pigeon', meta:'Presenting Female · 28–45', desc:'Warm, giggly, a little scattered — one half of the "Pigeon sisters" upstairs.'},
+  {name:'Cecily Pigeon', meta:'Presenting Female · 28–45', desc:"Gwendolyn's equally warm, slightly more composed sister."},
+];
+
+const CREW_OPTIONS = ['Sets','Costumes','Stage Hand','Makeup','Tech'];
+
+let slotCounts = {};
+let selectedSlot = null;
+let selectedPronouns = new Set();
+let selectedRoles = new Set();
+let selectedCrew = new Set();
+let anyPart = null;
+let scheduleAck = false;
+let rescheduleFrom = null; // holds {record} of a booking being changed
+
+async function loadTaken(){
+  slotCounts = {};
+  if(!scriptConfigured()) return;
+  try{
+    const result = await apiGet({action: 'counts'});
+    slotCounts = result.counts || {};
+  }catch(e){
+    console.error('Failed to load slot counts', e);
+  }
+}
+
+function toggleSet(set, val, cb){
+  if(set.has(val)) set.delete(val); else set.add(val);
+  cb();
+}
+
+function render(){
+  const app = document.getElementById('app');
+  const r = rescheduleFrom ? rescheduleFrom.record : null;
+  app.innerHTML = `
+    ${r ? `<div class="reschedule-banner">Choosing a new time for ${r.name} — your old slot (${r.slotLabel}) has been released</div>` : ''}
+    <div class="panel">
+
+      <div class="section-title">About You</div>
+      <label>Name</label>
+      <input id="name" placeholder="Full name" />
+
+      <div class="row2">
+        <div>
+          <label>Email</label>
+          <input id="email" type="email" placeholder="you@email.com" />
+        </div>
+        <div>
+          <label>Phone</label>
+          <input id="phone" type="tel" placeholder="(555) 555-5555" />
+        </div>
+      </div>
+
+      <label>Pronouns</label>
+      <div class="chip-group" id="pronouns"></div>
+
+      <div class="row2">
+        <div>
+          <label>Age</label>
+          <input id="age" type="number" min="16" placeholder="Age" />
+        </div>
+        <div>
+          <label>Height</label>
+          <input id="height" type="text" placeholder="e.g. 5'8&quot;" />
+        </div>
+      </div>
+
+      <label>Where do you work / go to school?</label>
+      <input id="workschool" placeholder="Employer or school" />
+
+      <div class="section-title">Roles</div>
+      <label>Role(s) you're interested in <span style="font-weight:400;text-transform:none;color:#777;">(select all that apply — age/gender listed is "presenting as," not a requirement)</span></label>
+      <div id="roles"></div>
+
+      <label>Are you willing to accept any part offered?</label>
+      <div class="yn" id="anypart">
+        <div class="chip" data-val="yes">Yes</div>
+        <div class="chip" data-val="no">No</div>
+      </div>
+
+      <label>If not cast, would you be willing to help with:</label>
+      <div class="chip-group" id="crew"></div>
+
+      <div class="section-title">Prep &amp; Experience</div>
+      <label>Character you're preparing your monologue as</label>
+      <input id="character" placeholder="e.g. Oscar Madison" />
+
+      <label>Resume &amp; headshot</label>
+      <div class="hint">This form can't accept file attachments — please email your resume and headshot to Amanda Jacobs (theatergeek18@rocketmail.com). If you don't have either, list your notable productions and training below instead.</div>
+      <textarea id="bio" style="margin-top:8px;" placeholder="Notable productions (role, theatre group) and any notable training — classes, workshops, etc."></textarea>
+
+      <div class="section-title">Schedule</div>
+      <div class="schedule-box">
+        <div class="line"><b>Rehearsals:</b> Mon–Thu, 6:30–9:30 PM, Sept 14 – Oct 16 (Performing Arts Center). Not everyone is needed every night — a detailed calendar goes out after casting.</div>
+        <div class="line"><b>Set construction:</b> Saturdays, 9:00 AM – Noon (crew &amp; volunteers).</div>
+        <div class="line"><b>Sundays:</b> by exception only, scheduled if needed.</div>
+        <div class="line"><b>Que-to-Que:</b> Sunday, Oct 18, 10:00 AM – 6:00 PM</div>
+        <div class="line"><b>Tech:</b> Oct 19–22 (Costume Review Oct 21)</div>
+        <div class="line"><b>Performances:</b> Fri Oct 23 · Sat Oct 24 · Sun Oct 25 (2 PM) · Fri Oct 30 · Sat Oct 31 · Sun Nov 1 (2 PM)</div>
+      </div>
+      <label>Conflicts during the rehearsal, tech, or performance period</label>
+      <div class="hint">Please be thorough — it's difficult to make changes once the schedule is set. Include specific dates and the reason, and note anything recurring (e.g. "every Tuesday — work shift" or "Oct 24–25 — out of town").</div>
+      <textarea id="conflicts" style="margin-top:8px;" placeholder="List any dates/times you're unavailable, why, and whether it recurs"></textarea>
+
+      <div class="ack" id="ack">
+        <div class="ack-box"></div>
+        <div>I've reviewed the proposed schedule above and, aside from what I've listed as a conflict, I can accommodate it.</div>
+      </div>
+
+      <div class="section-title">Audition Slot</div>
+      <div class="location-banner">
+        <div class="loc-label">Auditions Held At</div>
+        <div class="loc-name">Riverfront Community Center</div>
+        <div class="loc-note">Not the same as the rehearsal location (Performing Arts Center) — see Schedule above.</div>
+      </div>
+      <div class="prep-box">
+        <b>What to bring:</b> One 2–4 minute monologue in the tone of the show. Character sides are posted online one week prior to auditions — pick one character to prepare.
+      </div>
+      <label>Pick an audition time</label>
+      <div class="day-grid">
+        <div class="day-col">
+          <div class="day-head">Thursday, Sept 10</div>
+          <div id="slots-thu"></div>
+        </div>
+        <div class="day-col">
+          <div class="day-head">Friday, Sept 11</div>
+          <div id="slots-fri"></div>
+        </div>
+      </div>
+      <div class="hint">5 people per slot. Can't make either day work? Note it in the conflicts box above.</div>
+
+      <div class="section-title">Anything Else</div>
+      <label>Notes to the director</label>
+      <textarea id="notes" placeholder="Optional"></textarea>
+
+      <button id="submit">Reserve my slot</button>
+      <div id="msg" class="msg"></div>
+    </div>
+  `;
+
+  // Pronouns
+  const pEl = document.getElementById('pronouns');
+  pEl.innerHTML = PRONOUNS.map(p => `<div class="chip" data-val="${p}">${p}</div>`).join('');
+  pEl.querySelectorAll('.chip').forEach(el => {
+    el.addEventListener('click', () => {
+      toggleSet(selectedPronouns, el.dataset.val, () => el.classList.toggle('on'));
+    });
+  });
+
+  // Roles
+  const rEl = document.getElementById('roles');
+  rEl.innerHTML = ROLES.map(r => `
+    <div class="role-check" data-val="${r.name}">
+      <div class="rname">${r.name}</div>
+      <div class="rmeta">${r.meta}</div>
+      <div class="rdesc">${r.desc}</div>
+    </div>`).join('');
+  rEl.querySelectorAll('.role-check').forEach(el => {
+    el.addEventListener('click', () => {
+      toggleSet(selectedRoles, el.dataset.val, () => el.classList.toggle('on'));
+    });
+  });
+
+  // Any part
+  document.querySelectorAll('#anypart .chip').forEach(el => {
+    el.addEventListener('click', () => {
+      anyPart = el.dataset.val;
+      document.querySelectorAll('#anypart .chip').forEach(c => c.classList.remove('on'));
+      el.classList.add('on');
+    });
+  });
+
+  // Crew
+  const cEl = document.getElementById('crew');
+  cEl.innerHTML = CREW_OPTIONS.map(c => `<div class="chip" data-val="${c}">${c}</div>`).join('');
+  cEl.querySelectorAll('.chip').forEach(el => {
+    el.addEventListener('click', () => {
+      toggleSet(selectedCrew, el.dataset.val, () => el.classList.toggle('on'));
+    });
+  });
+
+  // Slots (two day columns)
+  function slotHtml(s){
+    const count = slotCounts[s.id] || 0;
+    const full = count >= SLOT_CAPACITY;
+    return `<div class="slot ${full ? 'taken' : ''}" data-id="${s.id}">${s.label}<span class="count">${full ? 'FULL' : count + '/' + SLOT_CAPACITY + ' booked'}</span></div>`;
+  }
+  document.getElementById('slots-thu').innerHTML = THU_SLOTS.map(slotHtml).join('');
+  document.getElementById('slots-fri').innerHTML = FRI_SLOTS.map(slotHtml).join('');
+
+  document.querySelectorAll('.slot').forEach(el => {
+    el.addEventListener('click', () => {
+      if(el.classList.contains('taken')) return;
+      document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedSlot = el.dataset.id;
+    });
+  });
+
+  // Schedule acknowledgment
+  const ackEl = document.getElementById('ack');
+  ackEl.addEventListener('click', () => {
+    scheduleAck = !scheduleAck;
+    ackEl.classList.toggle('on', scheduleAck);
+  });
+
+  document.getElementById('submit').addEventListener('click', submitForm);
+
+  // Prefill when rescheduling
+  if(r){
+    document.getElementById('name').value = r.name || '';
+    document.getElementById('email').value = r.email || '';
+    document.getElementById('phone').value = r.phone || '';
+    document.getElementById('age').value = r.age || '';
+    document.getElementById('height').value = r.height || '';
+    document.getElementById('workschool').value = r.workschool || '';
+    document.getElementById('character').value = r.character || '';
+    document.getElementById('bio').value = r.bio || '';
+    document.getElementById('conflicts').value = r.conflicts || '';
+    document.getElementById('notes').value = r.notes || '';
+  }
+  document.querySelectorAll('#pronouns .chip').forEach(el => { if(selectedPronouns.has(el.dataset.val)) el.classList.add('on'); });
+  document.querySelectorAll('.role-check').forEach(el => { if(selectedRoles.has(el.dataset.val)) el.classList.add('on'); });
+  document.querySelectorAll('#crew .chip').forEach(el => { if(selectedCrew.has(el.dataset.val)) el.classList.add('on'); });
+  document.querySelectorAll('#anypart .chip').forEach(el => { if(el.dataset.val === anyPart) el.classList.add('on'); });
+
+  renderRoster();
+}
+
+async function renderRoster(){
+  const el = document.getElementById('roster');
+  if(!scriptConfigured()){
+    el.innerHTML = '<div class="hint">Backend not connected yet.</div>';
+    return;
+  }
+  try{
+    const result = await apiPost('roster', {});
+    if(!result.success || !result.rows || result.rows.length === 0){
+      el.innerHTML = '<div>No sign-ups yet.</div>';
+      return;
+    }
+    el.innerHTML = result.rows.map(d =>
+      `<div><b>${d.name}</b> — ${d.slotLabel} — ${(d.roles||[]).join(', ') || 'no role selected'}</div>`
+    ).join('');
+  }catch(e){
+    el.innerHTML = '<div>No sign-ups yet.</div>';
+  }
+}
+
+async function submitForm(){
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const age = document.getElementById('age').value.trim();
+  const height = document.getElementById('height').value.trim();
+  const workschool = document.getElementById('workschool').value.trim();
+  const character = document.getElementById('character').value.trim();
+  const bio = document.getElementById('bio').value.trim();
+  const conflicts = document.getElementById('conflicts').value.trim();
+  const notes = document.getElementById('notes').value.trim();
+  const msg = document.getElementById('msg');
+
+  if(!name || !email || !character || !selectedSlot || selectedRoles.size === 0){
+    msg.textContent = 'Please fill in your name, email, character, at least one role, and pick a slot.';
+    msg.className = 'msg err';
+    return;
+  }
+  if(!scheduleAck){
+    msg.textContent = 'Please check the box confirming you can accommodate the proposed schedule.';
+    msg.className = 'msg err';
+    return;
+  }
+  if(!scriptConfigured()){
+    msg.textContent = 'Sign-ups aren\'t connected yet — check back soon.';
+    msg.className = 'msg err';
+    return;
+  }
+
+  const dayName = selectedSlot.startsWith('t1') ? 'Thu 9/10' : 'Fri 9/11';
+  const slotLabel = dayName + ' · ' + AUDITION_SLOTS.find(s => s.id === selectedSlot).label;
+  const payload = {
+    name, email, phone, age, height, workschool,
+    pronouns: Array.from(selectedPronouns),
+    roles: Array.from(selectedRoles),
+    anyPart, crew: Array.from(selectedCrew),
+    character, bio, conflicts, notes,
+    slot: selectedSlot, slotLabel
+  };
+
+  try{
+    const result = await apiPost('create', {data: payload});
+    if(!result.success){
+      if(result.error === 'slot_full'){
+        msg.textContent = 'That slot just filled up — please pick another.';
+      }else{
+        msg.textContent = 'Something went wrong saving your sign-up — please try again.';
+      }
+      msg.className = 'msg err';
+      await loadTaken();
+      render();
+      return;
+    }
+    const code = result.code;
+    const emailNote = result.emailSent
+      ? `<p class="hint">A confirmation email is on its way to ${email}.</p>`
+      : `<p class="hint" style="color:var(--red-deep);">Heads up: the confirmation email wasn't sent — save your code below just in case.</p>`;
+    document.getElementById('app').innerHTML = `
+      <div class="panel confirm">
+        <h2>You're booked!</h2>
+        <p>${name}, you're set for <b>${slotLabel}</b> — preparing <b>${character}</b>.</p>
+        <p class="hint">Bring your monologue and arrive a few minutes early. See you at Riverfront Community Center!</p>
+        ${emailNote}
+        <div style="background:var(--ink); color:var(--gold); border-radius:8px; padding:12px; margin-top:14px;">
+          <div style="font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--cream); opacity:.8;">Your confirmation code</div>
+          <div style="font-family:'Anton',sans-serif; font-size:26px; letter-spacing:.08em;">${code}</div>
+        </div>
+        <p class="hint">Save this code — use it in the "Already Signed Up?" box above to cancel or change your time later. This confirmation only shows once.</p>
+        <button id="again" style="margin-top:14px;">Sign up someone else</button>
+      </div>`;
+    document.getElementById('again').addEventListener('click', () => {
+      selectedSlot = null; scheduleAck = false; rescheduleFrom = null;
+      selectedPronouns = new Set(); selectedRoles = new Set(); selectedCrew = new Set(); anyPart = null;
+      render();
+    });
+    rescheduleFrom = null;
+    await loadTaken();
+    renderRoster();
+  }catch(e){
+    msg.textContent = 'Something went wrong saving your sign-up — please try again.';
+    msg.className = 'msg err';
+  }
+}
+
+async function findBookingByCode(code){
+  try{
+    const result = await apiPost('find', {code: code.toUpperCase()});
+    if(result.success) return {code: code.toUpperCase(), record: result.record};
+    return null;
+  }catch(e){
+    return null;
+  }
+}
+
+function renderManageResult(found){
+  const el = document.getElementById('manage-result');
+  if(!found){
+    el.innerHTML = `<div class="hint" style="color:var(--red-deep); margin-top:10px;">No booking found for that code.</div>`;
+    return;
+  }
+  const d = found.record;
+  el.innerHTML = `
+    <div class="manage-found">
+      <div><b>${d.name}</b> — ${d.slotLabel}</div>
+      <div>Preparing: ${d.character || '—'}</div>
+      <div class="manage-actions">
+        <button id="manage-cancel" class="btn-danger">Cancel booking</button>
+        <button id="manage-reschedule" class="btn-secondary">Pick a different time</button>
+      </div>
+    </div>`;
+  document.getElementById('manage-cancel').addEventListener('click', async () => {
+    if(!confirm(`Cancel ${d.name}'s booking for ${d.slotLabel}?`)) return;
+    try{
+      const result = await apiPost('cancel', {code: found.code});
+      if(!result.success) throw new Error('cancel failed');
+      el.innerHTML = `<div class="hint" style="margin-top:10px;">Booking cancelled. That slot is now open for someone else.</div>`;
+      await loadTaken();
+      renderRoster();
+      // refresh currently-shown slot buttons if the main form isn't mid-reschedule
+      if(!rescheduleFrom) render();
+    }catch(e){
+      el.innerHTML = `<div class="hint" style="color:var(--red-deep); margin-top:10px;">Couldn't cancel — please try again.</div>`;
+    }
+  });
+  document.getElementById('manage-reschedule').addEventListener('click', async () => {
+    try{
+      await apiPost('cancel', {code: found.code});
+    }catch(e){}
+    rescheduleFrom = found;
+    selectedSlot = null; scheduleAck = false;
+    selectedPronouns = new Set(d.pronouns || []);
+    selectedRoles = new Set(d.roles || []);
+    selectedCrew = new Set(d.crew || []);
+    anyPart = d.anyPart || null;
+    el.innerHTML = `<div class="hint" style="margin-top:10px;">Your old slot has been released — pick a new time below.</div>`;
+    await loadTaken();
+    render();
+    document.getElementById('app').scrollIntoView({behavior:'smooth'});
+  });
+}
+
+document.getElementById('manage-find').addEventListener('click', async () => {
+  const codeInput = document.getElementById('manage-code');
+  const code = codeInput.value.trim();
+  const el = document.getElementById('manage-result');
+  if(!code){
+    el.innerHTML = `<div class="hint" style="color:var(--red-deep); margin-top:10px;">Enter a confirmation code first.</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="hint" style="margin-top:10px;">Searching…</div>`;
+  const found = await findBookingByCode(code);
+  renderManageResult(found);
+});
+
+// ---------- Production Dashboard ----------
+// The passcode is checked on the Apps Script server now — it's never sent
+// to the browser, so this is real security, not just a client-side gate.
+let cachedPasscode = null;
+
+const DASH_COLS = ['name','email','phone','pronouns','age','height','workschool','roles','anyPart','crew','character','bio','conflicts','notes','slotLabel','code','timestamp'];
+const DASH_LABELS = {
+  name:'Name', email:'Email', phone:'Phone', pronouns:'Pronouns', age:'Age', height:'Height',
+  workschool:'Work / School', roles:'Roles Interested', anyPart:'Any Part?', crew:'Crew Willing',
+  character:'Character Prepared', bio:'Bio / Experience', conflicts:'Conflicts', notes:'Notes to Director',
+  slotLabel:'Audition Slot', code:'Confirmation Code', timestamp:'Submitted'
+};
+
+function cellValue(v){
+  if(Array.isArray(v)) v = v.join(', ');
+  return (v===undefined || v===null) ? '' : String(v);
+}
+
+function renderDashboardTable(records){
+  const container = document.getElementById('dashboard-content');
+  if(!records || records.length === 0){
+    container.innerHTML = '<div class="hint">No sign-ups yet.</div>';
+    return;
+  }
+  records.sort((a,b) => (a.slot||'').localeCompare(b.slot||'') || (a.timestamp||'').localeCompare(b.timestamp||''));
+  let html = `<button id="dash-refresh" style="width:auto;margin-right:8px;">Refresh</button>
+              <button id="dash-export" style="width:auto;">Export CSV</button>
+              <div style="overflow-x:auto;margin-top:12px;">
+              <table style="border-collapse:collapse;width:100%;font-size:11px;">`;
+  html += '<tr>' + DASH_COLS.map(c => `<th style="border:1px solid #ccc;padding:5px 7px;background:var(--ink);color:var(--gold);text-align:left;white-space:nowrap;">${DASH_LABELS[c]}</th>`).join('') + '</tr>';
+  records.forEach(r => {
+    html += '<tr>' + DASH_COLS.map(c => {
+      const v = cellValue(r[c]).replace(/</g,'&lt;');
+      return `<td style="border:1px solid #ccc;padding:5px 7px;max-width:220px;vertical-align:top;">${v}</td>`;
+    }).join('') + '</tr>';
+  });
+  html += '</table></div>';
+  container.innerHTML = html;
+  document.getElementById('dash-export').addEventListener('click', () => exportCsv(records));
+  document.getElementById('dash-refresh').addEventListener('click', unlockDashboard);
+}
+
+function exportCsv(records){
+  const esc = v => {
+    v = cellValue(v);
+    if(v.includes(',') || v.includes('"') || v.includes('\n')) v = '"' + v.replace(/"/g,'""') + '"';
+    return v;
+  };
+  let csv = DASH_COLS.map(c => esc(DASH_LABELS[c])).join(',') + '\n';
+  records.forEach(r => {
+    csv += DASH_COLS.map(c => esc(r[c])).join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'odd_couple_auditions.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function unlockDashboard(){
+  const container = document.getElementById('dashboard-content');
+  container.innerHTML = '<div class="hint">Loading…</div>';
+  try{
+    const result = await apiPost('dashboard', {passcode: cachedPasscode});
+    if(!result.success){
+      document.getElementById('dashboard-gate').style.display = '';
+      document.getElementById('dashboard-content').style.display = 'none';
+      alert('Incorrect passcode.');
+      return;
+    }
+    renderDashboardTable(result.records);
+  }catch(e){
+    container.innerHTML = '<div class="hint" style="color:var(--red-deep);">Something went wrong — please try again.</div>';
+  }
+}
+
+document.getElementById('dash-unlock').addEventListener('click', async () => {
+  cachedPasscode = document.getElementById('dash-pass').value;
+  document.getElementById('dashboard-gate').style.display = 'none';
+  document.getElementById('dashboard-content').style.display = 'block';
+  await unlockDashboard();
+});
+
+(async function init(){
+  await loadTaken();
+  render();
+})();
+</script>
+
+</body>
+</html>
