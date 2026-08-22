@@ -89,6 +89,12 @@
   }
   .location-banner .loc-label{font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:.1em; text-transform:uppercase; font-size:12px; color:var(--gold); opacity:.95;}
   .location-banner .loc-name{font-family:'Anton',sans-serif; text-transform:uppercase; font-size:24px; line-height:1.15; margin:2px 0;}
+  .location-banner .loc-addr{font-size:13.5px; color:#fff; margin-bottom:8px;}
+  .location-banner .loc-maps{display:flex; gap:8px; justify-content:center; margin-bottom:8px; flex-wrap:wrap;}
+  .location-banner .loc-maps a{
+    display:inline-block; font-size:12.5px; font-weight:700; color:#fff; text-decoration:none;
+    border:1.5px solid rgba(255,255,255,.75); border-radius:6px; padding:6px 12px;
+  }
   .location-banner .loc-note{font-size:12px; color:var(--cream); opacity:.9;}
 
   .prep-box{
@@ -383,12 +389,12 @@ function render(){
 
       <div class="section-title">Schedule</div>
       <div class="schedule-box">
-        <div class="line"><b>Rehearsals:</b> Mon–Thu, 6:30–9:30 PM, Sept 14 – Oct 16 (Performing Arts Center). Not everyone is needed every night — a detailed calendar goes out after casting.</div>
+        <div class="line"><b>Rehearsals:</b> Mon–Thu, 6:30–9:30 PM, Sept 14 – Oct 16<br><span style="color:#555;">500 Delaware St, Leavenworth, KS 66048</span><br>Not everyone is needed every night — a detailed calendar goes out after casting.</div>
         <div class="line"><b>Set construction:</b> Saturdays, 9:00 AM – Noon (crew &amp; volunteers).</div>
         <div class="line"><b>Sundays:</b> by exception only, scheduled if needed.</div>
         <div class="line"><b>Que-to-Que:</b> Sunday, Oct 18, 10:00 AM – 6:00 PM</div>
         <div class="line"><b>Tech:</b> Oct 19–22 (Costume Review Oct 21)</div>
-        <div class="line"><b>Performances:</b> Fri Oct 23 · Sat Oct 24 · Sun Oct 25 (2 PM) · Fri Oct 30 · Sat Oct 31 · Sun Nov 1 (2 PM)</div>
+        <div class="line"><b>Performances:</b><br>Fri Oct 23 &amp; Oct 30 — 7:30 PM<br>Sat Oct 24 &amp; Oct 31 — 7:30 PM<br>Sun Oct 25 &amp; Nov 1 — 2:00 PM<br><span style="color:#555;">500 Delaware St, Leavenworth, KS 66048</span></div>
       </div>
       <label>Conflicts during the rehearsal, tech, or performance period</label>
       <div class="hint">Please be thorough — it's difficult to make changes once the schedule is set. Include specific dates and the reason, and note anything recurring (e.g. "every Tuesday — work shift" or "Oct 24–25 — out of town").</div>
@@ -403,7 +409,12 @@ function render(){
       <div class="location-banner">
         <div class="loc-label">Auditions Held At</div>
         <div class="loc-name">Riverfront Community Center</div>
-        <div class="loc-note">Not the same as the rehearsal location (Performing Arts Center) — see Schedule above.</div>
+        <div class="loc-addr">123 N Esplanade St, Leavenworth, KS 66048</div>
+        <div class="loc-maps">
+          <a href="https://maps.apple.com/?q=123%20N%20Esplanade%20St%2C%20Leavenworth%2C%20KS%2066048" target="_blank" rel="noopener">Apple Maps</a>
+          <a href="https://www.google.com/maps/search/?api=1&query=123%20N%20Esplanade%20St%2C%20Leavenworth%2C%20KS%2066048" target="_blank" rel="noopener">Google Maps</a>
+        </div>
+        <div class="loc-note">Rehearsals and performances are at a different location — 500 Delaware St. See Schedule above.</div>
       </div>
       <div class="prep-box">
         <b>What to bring:</b> One 2–4 minute monologue in the tone of the show. Sides are posted online one week prior to auditions — pick a scene from one of the roles you're interested in.
@@ -700,7 +711,7 @@ async function submitForm(){
       <div class="panel confirm">
         <h2>${heading}</h2>
         <p>${bodyText}</p>
-        ${wasWaitlisted ? '' : '<p class="hint">Bring your monologue and arrive a few minutes early. See you at Riverfront Community Center!</p>'}
+        ${wasWaitlisted ? '' : '<p class="hint">Bring your monologue and arrive a few minutes early. See you at Riverfront Community Center, 123 N Esplanade St!</p>'}
         ${emailNote}
         <div style="background:var(--ink); color:var(--gold); border-radius:8px; padding:12px; margin-top:14px;">
           <div style="font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--cream); opacity:.8;">Your confirmation code</div>
