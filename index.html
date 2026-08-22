@@ -164,6 +164,19 @@
   <div class="roster" id="roster">Loading…</div>
 </details>
 
+<div class="panel" id="contact">
+  <div class="section-title" style="margin-top:0;">Questions?</div>
+  <div class="hint" style="margin-bottom:8px;">Send a message to the production team and we'll get back to you by email.</div>
+  <label>Your name</label>
+  <input id="contact-name" type="text" placeholder="Full name" />
+  <label>Your email</label>
+  <input id="contact-email" type="email" placeholder="you@email.com" />
+  <label>Message</label>
+  <textarea id="contact-message" placeholder="What can we help with?"></textarea>
+  <button id="contact-send">Send message</button>
+  <div id="contact-msg" class="msg"></div>
+</div>
+
 <script>
 // ---------- Backend config ----------
 // Paste your deployed Apps Script Web App URL here (ends in /exec).
@@ -709,6 +722,9 @@ function renderManageResult(found){
   const d = found.record;
   const statusLine = found.waitlisted ? 'Status: Waitlisted — no time assigned yet' : d.slotLabel;
   const rescheduleBtn = found.waitlisted ? '' : `<button id="manage-reschedule" class="btn-secondary">Pick a different time</button>`;
+  const fileState = (label, url) => url
+    ? `${label}: <a href="${String(url).replace(/"/g,'')}" target="_blank" rel="noopener" style="color:var(--red-deep);">on file</a>`
+    : `${label}: none yet`;
   el.innerHTML = `
     <div class="manage-found">
       <div><b>${d.name}</b> — ${statusLine}</div>
@@ -717,7 +733,79 @@ function renderManageResult(found){
         <button id="manage-cancel" class="btn-danger">${found.waitlisted ? 'Leave waitlist' : 'Cancel booking'}</button>
         ${rescheduleBtn}
       </div>
+
+      <div style="border-top:1px solid #ddd; margin-top:14px; padding-top:12px;">
+        <div style="font-weight:700; font-size:13px; color:var(--red-deep); text-transform:uppercase; letter-spacing:.03em;">Resume &amp; headshot</div>
+        <div class="hint" style="margin:4px 0 8px;">
+          ${fileState('Resume', d.resumeUrl)} &nbsp;·&nbsp; ${fileState('Headshot', d.headshotUrl)}<br>
+          PDF, JPEG, or PNG — up to 4MB each. Uploading replaces what's there.
+        </div>
+        <div class="row2">
+          <div>
+            <label style="margin-top:0;">Resume</label>
+            <input id="manage-resume" type="file" accept=".pdf,.jpg,.jpeg,.png" />
+          </div>
+          <div>
+            <label style="margin-top:0;">Headshot</label>
+            <input id="manage-headshot" type="file" accept=".jpg,.jpeg,.png" />
+          </div>
+        </div>
+        <button id="manage-upload" class="btn-secondary" style="margin-top:10px;">Upload files</button>
+        <div id="manage-upload-msg" class="msg"></div>
+      </div>
+
+      <div style="border-top:1px solid #ddd; margin-top:14px; padding-top:12px;">
+        <button id="manage-question" class="btn-secondary" style="margin-top:0;">Ask a question</button>
+      </div>
     </div>`;
+
+  // Upload / replace resume & headshot
+  document.getElementById('manage-upload').addEventListener('click', async () => {
+    const btn = document.getElementById('manage-upload');
+    const umsg = document.getElementById('manage-upload-msg');
+    let resumeFile, headshotFile;
+    try{
+      resumeFile = await readFileAsPayload(document.getElementById('manage-resume'));
+      headshotFile = await readFileAsPayload(document.getElementById('manage-headshot'));
+    }catch(fileErr){
+      umsg.textContent = fileErr.message;
+      umsg.className = 'msg err';
+      return;
+    }
+    if(!resumeFile && !headshotFile){
+      umsg.textContent = 'Pick a resume or headshot file first.';
+      umsg.className = 'msg err';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Uploading…';
+    umsg.textContent = '';
+    try{
+      const payload = {};
+      if(resumeFile) payload.resumeFile = resumeFile;
+      if(headshotFile) payload.headshotFile = headshotFile;
+      const result = await apiPost('updateFiles', {code: found.code, data: payload});
+      if(!result.success) throw new Error('upload failed');
+      umsg.textContent = 'Uploaded — thanks!';
+      umsg.className = 'msg';
+      umsg.style.color = '#2e7d32';
+      const refreshed = await findBookingByCode(found.code);
+      if(refreshed) renderManageResult(refreshed);
+    }catch(e){
+      umsg.textContent = 'Couldn\'t upload that — please try again.';
+      umsg.className = 'msg err';
+      btn.disabled = false;
+      btn.textContent = 'Upload files';
+    }
+  });
+
+  // Jump to the contact form, prefilled
+  document.getElementById('manage-question').addEventListener('click', () => {
+    document.getElementById('contact-name').value = d.name || '';
+    document.getElementById('contact-email').value = d.email || '';
+    document.getElementById('contact').scrollIntoView({behavior:'smooth'});
+    document.getElementById('contact-message').focus();
+  });
   document.getElementById('manage-cancel').addEventListener('click', async () => {
     const confirmMsg = found.waitlisted
       ? `Remove ${d.name} from the waitlist?`
@@ -771,6 +859,49 @@ document.getElementById('manage-find').addEventListener('click', runManageSearch
 // ---------- Production Dashboard ----------
 // Hidden from the page for now — the director wants to rework this later.
 // The Apps Script backend still supports the 'dashboard' action if needed.
+
+// ---------- Questions? contact form ----------
+document.getElementById('contact-send').addEventListener('click', async () => {
+  const btn = document.getElementById('contact-send');
+  const el = document.getElementById('contact-msg');
+  const name = document.getElementById('contact-name').value.trim();
+  const email = document.getElementById('contact-email').value.trim();
+  const message = document.getElementById('contact-message').value.trim();
+
+  if(!name || !email || !message){
+    el.textContent = 'Please fill in your name, email, and a message.';
+    el.className = 'msg err';
+    return;
+  }
+  if(!scriptConfigured()){
+    el.textContent = 'Messaging isn\'t connected yet — check back soon.';
+    el.className = 'msg err';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  el.textContent = '';
+  try{
+    const result = await apiPost('contact', {data: {name, email, message}});
+    if(result.success){
+      document.getElementById('contact-name').value = '';
+      document.getElementById('contact-email').value = '';
+      document.getElementById('contact-message').value = '';
+      el.textContent = 'Thanks — your message is on its way. We\'ll reply by email.';
+      el.className = 'msg';
+      el.style.color = '#2e7d32';
+    }else{
+      el.textContent = 'Couldn\'t send that — please try again.';
+      el.className = 'msg err';
+    }
+  }catch(e){
+    el.textContent = 'Couldn\'t send that — please try again.';
+    el.className = 'msg err';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Send message';
+});
 
 (async function init(){
   await loadTaken();
